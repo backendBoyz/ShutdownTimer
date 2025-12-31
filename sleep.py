@@ -35,7 +35,7 @@ class ShutdownTimerApp(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title("Shutdown Timer")
-        self.geometry("520x620")  # leicht höher
+        self.geometry("650x750")  # leicht höher
         ctk.set_appearance_mode("system")
         ctk.set_default_color_theme("dark-blue")
 
