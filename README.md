@@ -1,9 +1,98 @@
 # ⚡ Shutdown Timer (Windows, Python + CustomTkinter)
 
+<img width="641" height="772" alt="image" src="https://github.com/user-attachments/assets/3bc26b3d-7545-4b3f-9d76-1ac512d1a339" />
+
+
 A sleek desktop app that schedules a Windows shutdown in X minutes, displays a live countdown, and allows you to cancel it anytime.  
 Built with [CustomTkinter].
 
+| Feature                   | Description                               |
+| ------------------------- | ----------------------------------------- |
+| Reminder Mode             | Popup notification instead of shutdown    |
+| Sleep Duration OptionMenu | Presets + Custom mode                     |
+| Custom Sleep Input        | Free input (int or float)                 |
+| Sleep Result Calculations | Remaining sleep & bedtimes                |
+| Sleep-Cycle Ring          | Visual cycles & time markers              |
+| UI Enhancements           | Improved layout, theme switch, validation |
+| Internal Logic            | More robust time & cycle handling         |
+
+
 ---
+
+# 🚀 Features Added in the Latest Version
+
+This version significantly expands the application beyond a simple shutdown timer.  
+Below is a structured summary of all new features added.
+
+---
+
+## 🖥 Shutdown & Reminder System
+
+### **Shutdown Timer**
+- Schedule a system shutdown after a selected number of minutes.
+- Visual countdown timer with hours, minutes, and seconds.
+- Progress bar that fills as the timer runs.
+- Full support for cancelling scheduled shutdowns.
+
+### **Reminder Mode (No Shutdown)**
+- New button **“Nur Erinnerung”** that schedules a reminder instead of shutting down the PC.
+- When the timer expires:
+  - A popup notification is displayed.
+  - The PC remains running.
+- Useful for sleep reminders, study timers, or break notifications.
+
+---
+
+## 💤 Integrated Sleep Calculator
+
+A full mini sleep-assistant built directly into the GUI.
+
+### **Sleep Duration Selection**
+- OptionMenu with predefined sleep durations: **6, 7, 8, 9, 10 hours**
+- **Custom mode**: enter any sleep duration (e.g., 2h, 7.5h, 14h)
+- Custom input field appears automatically when “Custom” is selected.
+
+### **Sleep Time & Remaining Sleep Calculation**
+- Enter a wake-up time (HH:MM).
+- The tool calculates:
+  - How much sleep you get if you go to bed *now*
+  - When you need to go to bed for the selected sleep duration
+  - Alternative bedtimes (±1 hour)
+- Supports integer and floating-point durations.
+
+---
+
+## ⏰ Sleep Cycle Visualization (Sleep-Cycle Ring)
+
+A circular visual representation of your upcoming night.
+
+### Includes:
+- A 24-hour circular clock visualization.
+- Red marker: **current time**
+- Green marker: **wake-up time**
+- Tick marks every **90 minutes** (sleep cycles)
+- Center text “Sleep Cycles”
+
+---
+
+## 🎛 UI & Interaction Improvements
+
+- Custom sleep-duration input shows/hides automatically depending on mode.
+- Resized window to support new layout.
+- Light/Dark theme switching.
+- Stronger validation for all inputs.
+- Improved messaging in the UI.
+
+---
+
+## 🔧 Technical Notes
+
+- Built with CustomTkinter + Tkinter Canvas.
+- Reminder notifications use `tkinter.messagebox`.
+- For PyInstaller builds (no console window):
+  ```bash
+  pyinstaller -w --noconsole your_script.py
+
 
 ## ⚙️ Features
 
