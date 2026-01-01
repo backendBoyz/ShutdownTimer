@@ -171,7 +171,7 @@ pyinstaller ^
 ```
 The built executable will be located in:
 
-dist/ShutdownTimer.exe
+dist/ShutdownMikmer.exe
 
 🔨 Build Notes
 

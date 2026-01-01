@@ -7,6 +7,9 @@ import tkinter.messagebox as messagebox
 from datetime import datetime, timedelta
 import math
 
+import ctypes
+from ctypes import wintypes
+
 
 # --- Windows shutdown helpers ---
 def schedule_shutdown(seconds: int) -> bool:
@@ -25,6 +28,36 @@ def abort_shutdown() -> bool:
         return False
 
 
+# --- Windows: Sleep verhindern (solange Timer läuft) ---
+ES_CONTINUOUS = 0x80000000
+ES_SYSTEM_REQUIRED = 0x00000001
+ES_DISPLAY_REQUIRED = 0x00000002  # optional
+
+_kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+_SetThreadExecutionState = _kernel32.SetThreadExecutionState
+_SetThreadExecutionState.argtypes = [wintypes.DWORD]
+_SetThreadExecutionState.restype = wintypes.DWORD
+
+
+def prevent_sleep(keep_display_on: bool = False) -> bool:
+    """
+    Verhindert Standby. keep_display_on=False -> Display darf aus gehen.
+    """
+    flags = ES_CONTINUOUS | ES_SYSTEM_REQUIRED
+    if keep_display_on:
+        flags |= ES_DISPLAY_REQUIRED
+    result = _SetThreadExecutionState(flags)
+    return bool(result)
+
+
+def allow_sleep() -> bool:
+    """
+    Hebt die Sleep-Blockierung wieder auf.
+    """
+    result = _SetThreadExecutionState(ES_CONTINUOUS)
+    return bool(result)
+
+
 # --- Hilfsfunktion für Ressourcenpfade (PyInstaller) ---
 def resource_path(rel_path: str) -> str:
     base = getattr(sys, "_MEIPASS", os.path.abspath("."))
@@ -35,7 +68,7 @@ class ShutdownTimerApp(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title("Shutdown Timer")
-        self.geometry("650x750")  # leicht höher
+        self.geometry("650x750")
         ctk.set_appearance_mode("system")
         ctk.set_default_color_theme("dark-blue")
 
@@ -43,8 +76,12 @@ class ShutdownTimerApp(ctk.CTk):
         self.remaining_seconds = 0
         self.total_seconds = 0
         self.countdown_running = False
-        self.countdown_job = None  # after()-Job-ID
-        self.current_mode = None   # "shutdown" oder "reminder"
+        self.countdown_job = None
+        self.current_mode = None  # "shutdown" oder "reminder"
+
+        # Sleep-Blocker Settings
+        self.prevent_sleep_enabled = True
+        self.keep_display_on = False
 
         # ===== Header =====
         header = ctk.CTkFrame(self)
@@ -145,13 +182,10 @@ class ShutdownTimerApp(ctk.CTk):
         )
         self.sleep_hours_menu.grid(row=2, column=1, padx=(4, 8), pady=4, sticky="we")
 
-        # Custom-Eingabe für Schlafdauer (nur bei "Custom" sichtbar)
         self.custom_sleep_hours_entry = ctk.CTkEntry(
             self.sleep_frame,
             placeholder_text="Eigene Stunden, z. B. 7.5 oder 14",
         )
-        # Start: versteckt
-        # self.custom_sleep_hours_entry.grid(row=3, column=0, columnspan=2, padx=8, pady=(2, 4), sticky="we")
 
         self.sleep_button = ctk.CTkButton(
             self.sleep_frame, text="Restschlaf berechnen", command=self.on_calc_sleep
@@ -202,7 +236,6 @@ class ShutdownTimerApp(ctk.CTk):
 
     # ===== Schlafdauer-Mode-Handler =====
     def on_sleep_hours_mode_change(self, value: str):
-        # Wenn "Custom": Eingabefeld anzeigen, sonst verstecken
         if value == "Custom":
             self.custom_sleep_hours_entry.grid(
                 row=3, column=0, columnspan=2, padx=8, pady=(2, 4), sticky="we"
@@ -228,6 +261,7 @@ class ShutdownTimerApp(ctk.CTk):
     def _start_common(self, minutes: int, mode: str):
         seconds = minutes * 60
 
+        # Shutdown planen (nur im Shutdown-Mode)
         if mode == "shutdown":
             if not schedule_shutdown(seconds):
                 self.status_label.configure(
@@ -240,6 +274,14 @@ class ShutdownTimerApp(ctk.CTk):
         self.remaining_seconds = seconds
         self.countdown_running = True
         self.current_mode = mode
+
+        # Sleep verhindern, damit Timer nicht stirbt, wenn Windows schlafen geht
+        if self.prevent_sleep_enabled:
+            ok = prevent_sleep(keep_display_on=self.keep_display_on)
+            if not ok:
+                self.status_label.configure(
+                    text="Hinweis: Konnte Standby-Blocker nicht setzen. Timer kann bei Standby hängen bleiben."
+                )
 
         # UI sperren
         self.start_button.configure(state="disabled")
@@ -262,7 +304,7 @@ class ShutdownTimerApp(ctk.CTk):
                 pass
             self.countdown_job = None
 
-        self.update_countdown()  # erster Tick
+        self.update_countdown()
 
     def on_start_shutdown(self):
         if self.countdown_running:
@@ -316,9 +358,7 @@ class ShutdownTimerApp(ctk.CTk):
             if self.current_mode == "shutdown":
                 self.status_label.configure(text="Shutdown steht unmittelbar bevor.")
             elif self.current_mode == "reminder":
-                self.status_label.configure(
-                    text="Reminder ausgelöst: Zeit schlafen zu gehen."
-                )
+                self.status_label.configure(text="Reminder ausgelöst: Zeit schlafen zu gehen.")
                 try:
                     messagebox.showinfo(
                         "Schlaf-Reminder",
@@ -330,11 +370,7 @@ class ShutdownTimerApp(ctk.CTk):
                 except Exception:
                     pass
 
-            self.countdown_running = False
-            self.current_mode = None
-            self.start_button.configure(state="normal")
-            self.reminder_button.configure(state="normal")
-            self.minutes_entry.configure(state="normal")
+            self._reset_ui()
             return
 
         self.remaining_seconds -= 1
@@ -348,7 +384,6 @@ class ShutdownTimerApp(ctk.CTk):
             self.sleep_canvas.delete("all")
             return
 
-        # gewünschte Schlafdauer bestimmen
         mode = self.sleep_hours_mode_var.get()
         desired_hours = 8.0
 
@@ -386,7 +421,6 @@ class ShutdownTimerApp(ctk.CTk):
             t = datetime.strptime(time_str, "%H:%M")
             wake = now.replace(hour=t.hour, minute=t.minute, second=0, microsecond=0)
 
-            # Falls die Zeit heute schon vorbei ist → auf morgen schieben
             if wake <= now:
                 wake += timedelta(days=1)
 
@@ -398,7 +432,6 @@ class ShutdownTimerApp(ctk.CTk):
             bed_main_dt = wake - timedelta(hours=desired_hours)
             bed_main = bed_main_dt.strftime("%H:%M")
 
-            # +/- 1h Varianten nur, wenn das nicht komplett absurd ist
             bed_minus = None
             bed_plus = None
             if desired_hours >= 1:
@@ -419,14 +452,11 @@ class ShutdownTimerApp(ctk.CTk):
                     f"oder {bed_plus} (~{desired_hours + 1:g}h)."
                 )
             else:
-                text_lines.append(
-                    f"Alternativ: {bed_plus} (~{desired_hours + 1:g}h)."
-                )
+                text_lines.append(f"Alternativ: {bed_plus} (~{desired_hours + 1:g}h).")
 
             self.sleep_result_label.configure(text="\n".join(text_lines))
-
-            # Sleep-Cycle-Ring zeichnen
             self.draw_sleep_cycle_ring(now, wake)
+
         except ValueError:
             self.sleep_result_label.configure(
                 text="Zeit konnte nicht gelesen werden. Bitte HH:MM verwenden, z. B. 06:30."
@@ -444,32 +474,19 @@ class ShutdownTimerApp(ctk.CTk):
         r_outer = min(w, h) / 2 - 10
         r_inner = r_outer - 15
 
-        # Hintergrundkreis
         c.create_oval(
-            cx - r_outer,
-            cy - r_outer,
-            cx + r_outer,
-            cy + r_outer,
-            outline="#555555",
-            width=2,
-            )
+            cx - r_outer, cy - r_outer, cx + r_outer, cy + r_outer,
+            outline="#555555", width=2
+        )
 
-        # Hilfsfunktion: Zeit -> Winkel (24h-Kreis)
         def time_to_angle(dt: datetime) -> float:
             minutes = dt.hour * 60 + dt.minute
-            frac = minutes / (24 * 60)  # Anteil des Tages
-            return (frac * 360.0) - 90.0  # -90 = oben
+            frac = minutes / (24 * 60)
+            return (frac * 360.0) - 90.0
 
-        now_norm = now
-        wake_norm = wake
+        self._draw_marker(c, cx, cy, r_inner, r_outer, time_to_angle(now), color="#ff5555")
+        self._draw_marker(c, cx, cy, r_inner, r_outer, time_to_angle(wake), color="#55ff55")
 
-        # Marker: JETZT (rot)
-        self._draw_marker(c, cx, cy, r_inner, r_outer, time_to_angle(now_norm), color="#ff5555")
-
-        # Marker: WECKER (grün)
-        self._draw_marker(c, cx, cy, r_inner, r_outer, time_to_angle(wake_norm), color="#55ff55")
-
-        # Schlafzyklen (90-Minuten-Schritte zwischen jetzt und Wecker)
         total_minutes = int((wake - now).total_seconds() // 60)
         num_cycles = max(1, total_minutes // 90)
 
@@ -480,10 +497,8 @@ class ShutdownTimerApp(ctk.CTk):
             angle = time_to_angle(t)
             self._draw_cycle_tick(c, cx, cy, r_inner + 5, r_outer - 5, angle, color="#aaaaaa")
 
-        # Text in der Mitte
         c.create_text(
-            cx,
-            cy,
+            cx, cy,
             text="Sleep\nCycles",
             fill="#dddddd",
             font=("Segoe UI", 10, "bold"),
@@ -497,11 +512,7 @@ class ShutdownTimerApp(ctk.CTk):
         x2 = cx + r_outer * math.cos(angle_rad)
         y2 = cy + r_outer * math.sin(angle_rad)
         canvas.create_line(x1, y1, x2, y2, fill=color, width=3)
-
-        canvas.create_oval(
-            x2 - 3, y2 - 3, x2 + 3, y2 + 3,
-            fill=color, outline=color
-        )
+        canvas.create_oval(x2 - 3, y2 - 3, x2 + 3, y2 + 3, fill=color, outline=color)
 
     def _draw_cycle_tick(self, canvas, cx, cy, r_inner, r_outer, angle_deg, color="#aaaaaa"):
         angle_rad = math.radians(angle_deg)
@@ -515,6 +526,7 @@ class ShutdownTimerApp(ctk.CTk):
     def _reset_ui(self):
         self.countdown_running = False
         self.current_mode = None
+
         if self.countdown_job is not None:
             try:
                 self.after_cancel(self.countdown_job)
@@ -527,6 +539,10 @@ class ShutdownTimerApp(ctk.CTk):
         self.reminder_button.configure(state="normal")
         self.minutes_entry.configure(state="normal")
         self.progress.set(0.0)
+
+        # Sleep wieder erlauben
+        if self.prevent_sleep_enabled:
+            allow_sleep()
 
 
 if __name__ == "__main__":
