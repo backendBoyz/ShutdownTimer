@@ -107,7 +107,7 @@ class ShutdownTimerApp(ctk.CTk):
         self.input_frame = ctk.CTkFrame(self)
         self.input_frame.pack(pady=6, padx=12, fill="x")
 
-        minutes_label = ctk.CTkLabel(self.input_frame, text="Minuten bis Aktion:")
+        minutes_label = ctk.CTkLabel(self.input_frame, text="Minutes till action:")
         minutes_label.grid(row=0, column=0, padx=(12, 8), pady=12, sticky="w")
 
         self.minutes_entry = ctk.CTkEntry(self.input_frame, placeholder_text="z. B. 60")
@@ -119,20 +119,20 @@ class ShutdownTimerApp(ctk.CTk):
         buttons_frame.pack(pady=4, padx=12, fill="x")
 
         self.start_button = ctk.CTkButton(
-            buttons_frame, text="Shutdown starten", command=self.on_start_shutdown
+            buttons_frame, text="Start Shutdown", command=self.on_start_shutdown
         )
         self.start_button.grid(row=0, column=0, padx=6, pady=8, sticky="we")
 
         self.reminder_button = ctk.CTkButton(
             buttons_frame,
-            text="Nur Erinnerung",
+            text="Only Reminder",
             fg_color="#444444",
             command=self.on_start_reminder,
         )
         self.reminder_button.grid(row=0, column=1, padx=6, pady=8, sticky="we")
 
         self.abort_button = ctk.CTkButton(
-            buttons_frame, text="Abbrechen", fg_color="gray", command=self.on_abort
+            buttons_frame, text="Cancel", fg_color="gray", command=self.on_abort
         )
         self.abort_button.grid(row=0, column=2, padx=6, pady=8, sticky="we")
 
@@ -141,7 +141,7 @@ class ShutdownTimerApp(ctk.CTk):
         buttons_frame.grid_columnconfigure(2, weight=1)
 
         # ===== Status & Countdown =====
-        self.status_label = ctk.CTkLabel(self, text="Keine Aktion geplant.", wraplength=420)
+        self.status_label = ctk.CTkLabel(self, text="No action planned.", wraplength=420)
         self.status_label.pack(pady=(10, 0))
 
         self.countdown_label = ctk.CTkLabel(self, text="", font=("Consolas", 18))
@@ -159,18 +159,18 @@ class ShutdownTimerApp(ctk.CTk):
         self.sleep_frame.pack(pady=(6, 10), padx=12, fill="x")
 
         sleep_title = ctk.CTkLabel(
-            self.sleep_frame, text="Mini-Schlafrechner", font=("Segoe UI", 14, "bold")
+            self.sleep_frame, text="Sleep Calculator", font=("Segoe UI", 14, "bold")
         )
         sleep_title.grid(row=0, column=0, columnspan=2, sticky="w", padx=8, pady=(8, 4))
 
-        wake_label = ctk.CTkLabel(self.sleep_frame, text="Weckerzeit (HH:MM):")
+        wake_label = ctk.CTkLabel(self.sleep_frame, text="Wake up Time (HH:MM):")
         wake_label.grid(row=1, column=0, padx=(8, 4), pady=4, sticky="w")
 
         self.wakeup_entry = ctk.CTkEntry(self.sleep_frame, placeholder_text="z. B. 06:30")
         self.wakeup_entry.grid(row=1, column=1, padx=(4, 8), pady=4, sticky="we")
 
         # Auswahl Schlafdauer
-        hours_label = ctk.CTkLabel(self.sleep_frame, text="Gewünschte Schlafdauer (h):")
+        hours_label = ctk.CTkLabel(self.sleep_frame, text="Desired sleep duration (h):")
         hours_label.grid(row=2, column=0, padx=(8, 4), pady=4, sticky="w")
 
         self.sleep_hours_mode_var = ctk.StringVar(value="8")
@@ -184,11 +184,11 @@ class ShutdownTimerApp(ctk.CTk):
 
         self.custom_sleep_hours_entry = ctk.CTkEntry(
             self.sleep_frame,
-            placeholder_text="Eigene Stunden, z. B. 7.5 oder 14",
+            placeholder_text="Custom hours, like: 7.5 or 14",
         )
 
         self.sleep_button = ctk.CTkButton(
-            self.sleep_frame, text="Restschlaf berechnen", command=self.on_calc_sleep
+            self.sleep_frame, text="Calculate remaining sleep", command=self.on_calc_sleep
         )
         self.sleep_button.grid(row=4, column=0, columnspan=2, padx=8, pady=6, sticky="we")
 
@@ -217,8 +217,8 @@ class ShutdownTimerApp(ctk.CTk):
         hint_label = ctk.CTkLabel(
             self,
             text=(
-                "Hinweis: Bei Berechtigungsproblemen als Administrator starten.\n"
-                "Reminder-Modus lässt den PC an. Wenig schlafen bleibt trotzdem ungesund."
+                "Note: If you have permission problems, run as administrator.\n"
+                "Reminder mode keeps the PC on. However, getting too little sleep is still unhealthy."
             ),
             font=("Segoe UI", 10),
             justify="center",
@@ -249,11 +249,11 @@ class ShutdownTimerApp(ctk.CTk):
         try:
             minutes = int(minutes_str)
         except ValueError:
-            self.status_label.configure(text="Bitte eine ganze Zahl in Minuten eingeben.")
+            self.status_label.configure(text="Please enter a whole number in minutes.")
             return None
 
         if minutes < 1:
-            self.status_label.configure(text="Mindestens 1 Minute, sonst wird das sinnlos hektisch.")
+            self.status_label.configure(text="At least 1 minute, otherwise it will become pointlessly hectic.")
             return None
 
         return minutes
@@ -265,7 +265,7 @@ class ShutdownTimerApp(ctk.CTk):
         if mode == "shutdown":
             if not schedule_shutdown(seconds):
                 self.status_label.configure(
-                    text="Konnte Shutdown nicht planen. Starte die App ggf. als Administrator."
+                    text="Could not schedule shutdown. If necessary, start the app as administrator."
                 )
                 return
 
@@ -280,7 +280,7 @@ class ShutdownTimerApp(ctk.CTk):
             ok = prevent_sleep(keep_display_on=self.keep_display_on)
             if not ok:
                 self.status_label.configure(
-                    text="Hinweis: Konnte Standby-Blocker nicht setzen. Timer kann bei Standby hängen bleiben."
+                    text="Note: Could not set standby blocker. Timer may get stuck in standby mode."
                 )
 
         # UI sperren
@@ -289,9 +289,9 @@ class ShutdownTimerApp(ctk.CTk):
         self.minutes_entry.configure(state="disabled")
 
         if mode == "shutdown":
-            self.status_label.configure(text=f"Shutdown geplant in {minutes} Minute(n).")
+            self.status_label.configure(text=f"Shutdown planned in {minutes} Minute(s).")
         else:
-            self.status_label.configure(text=f"Reminder geplant in {minutes} Minute(n).")
+            self.status_label.configure(text=f"Reminder planned in {minutes} Minute(s).")
 
         # Progress zurücksetzen
         self.progress.set(0.0)
@@ -326,15 +326,15 @@ class ShutdownTimerApp(ctk.CTk):
         if self.current_mode == "shutdown":
             aborted = abort_shutdown()
             if aborted:
-                self.status_label.configure(text="Geplanter Shutdown abgebrochen.")
+                self.status_label.configure(text="Planned shutdown aborted.")
             else:
                 self.status_label.configure(
-                    text="Kein geplanter Shutdown gefunden oder Abbruch fehlgeschlagen."
+                    text="No planned shutdown found or abort failed."
                 )
         elif self.current_mode == "reminder":
-            self.status_label.configure(text="Geplanter Reminder abgebrochen.")
+            self.status_label.configure(text="Scheduled reminder cancelled.")
         else:
-            self.status_label.configure(text="Keine laufende Aktion zum Abbrechen.")
+            self.status_label.configure(text="No action in progress to cancel.")
 
         self._reset_ui()
 
@@ -356,14 +356,14 @@ class ShutdownTimerApp(ctk.CTk):
             self.progress.set(1.0)
 
             if self.current_mode == "shutdown":
-                self.status_label.configure(text="Shutdown steht unmittelbar bevor.")
+                self.status_label.configure(text="SShutdown is imminent.")
             elif self.current_mode == "reminder":
-                self.status_label.configure(text="Reminder ausgelöst: Zeit schlafen zu gehen.")
+                self.status_label.configure(text="Reminder triggered: Time to go to sleep.")
                 try:
                     messagebox.showinfo(
                         "Schlaf-Reminder",
-                        "Bruder, es ist Zeit schlafen zu gehen.\n"
-                        "Schlaf geht nicht weg, aber dein Hirn schon.",
+                        "Bro, It's time to go to sleep.\n"
+                        "Sleep won't go away, but your brain will.",
                     )
                     self.lift()
                     self.focus_force()
@@ -380,7 +380,7 @@ class ShutdownTimerApp(ctk.CTk):
     def on_calc_sleep(self):
         time_str = self.wakeup_entry.get().strip()
         if not time_str:
-            self.sleep_result_label.configure(text="Bitte eine Weckerzeit im Format HH:MM eingeben.")
+            self.sleep_result_label.configure(text="Please enter an alarm time in the format HH:MM.")
             self.sleep_canvas.delete("all")
             return
 
@@ -391,7 +391,7 @@ class ShutdownTimerApp(ctk.CTk):
             raw = self.custom_sleep_hours_entry.get().strip()
             if not raw:
                 self.sleep_result_label.configure(
-                    text="Bitte eigene Schlafdauer eingeben oder eine feste Zahl wählen."
+                    text="Please enter your own sleep duration or choose a fixed number."
                 )
                 self.sleep_canvas.delete("all")
                 return
@@ -399,7 +399,7 @@ class ShutdownTimerApp(ctk.CTk):
                 desired_hours = float(raw.replace(",", "."))
             except ValueError:
                 self.sleep_result_label.configure(
-                    text="Eigene Schlafdauer konnte nicht gelesen werden. Beispiel: 7.5"
+                    text="My own sleep duration could not be read. Example: 7.5"
                 )
                 self.sleep_canvas.delete("all")
                 return
@@ -411,7 +411,7 @@ class ShutdownTimerApp(ctk.CTk):
 
         if desired_hours <= 0:
             self.sleep_result_label.configure(
-                text="Schlafdauer <= 0h ist kreativ, aber nutzlos. Trag was Sinnvolles ein."
+                text="Entering Sleep duration <= 0h is creative, but useless. Enter something meaningful."
             )
             self.sleep_canvas.delete("all")
             return
@@ -441,25 +441,25 @@ class ShutdownTimerApp(ctk.CTk):
             dh_str = f"{desired_hours:g}"
 
             text_lines = [
-                f"Wenn du JETZT schlafen gehst, bekommst du ca. {hours}h {minutes}min Schlaf "
-                f"bis {wake.strftime('%H:%M')}.",
-                f"Für ~{dh_str}h Schlaf: spätestens um {bed_main} ins Bett.",
+                f"If you go to sleep NOW, you will get approximately {hours}h {minutes}min Sleep "
+                f"till {wake.strftime('%H:%M')}.",
+                f"For ~{dh_str}h Sleep: at the latest {bed_main} to bed.",
             ]
 
             if bed_minus:
                 text_lines.append(
-                    f"Alternativ: {bed_minus} (~{desired_hours - 1:g}h) "
-                    f"oder {bed_plus} (~{desired_hours + 1:g}h)."
+                    f"Alternatively: {bed_minus} (~{desired_hours - 1:g}h) "
+                    f"or {bed_plus} (~{desired_hours + 1:g}h)."
                 )
             else:
-                text_lines.append(f"Alternativ: {bed_plus} (~{desired_hours + 1:g}h).")
+                text_lines.append(f"Alternatively: {bed_plus} (~{desired_hours + 1:g}h).")
 
             self.sleep_result_label.configure(text="\n".join(text_lines))
             self.draw_sleep_cycle_ring(now, wake)
 
         except ValueError:
             self.sleep_result_label.configure(
-                text="Zeit konnte nicht gelesen werden. Bitte HH:MM verwenden, z. B. 06:30."
+                text="Time could not be read. Please use HH:MM, e.g. 06:30."
             )
             self.sleep_canvas.delete("all")
 
