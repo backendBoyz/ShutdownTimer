@@ -1,57 +1,58 @@
-# Windows Shutdown Timer (.NET / WinForms)
+# SleepPlanner — C# / .NET (WinForms)
 
-A rewrite of the [Python/CustomTkinter version](../python) as a native
-Windows Forms app (`SleepPlanner`, .NET 8). Same feature set: shutdown/reminder
-timer with countdown and progress bar, autostart via Task Scheduler, dark/light
-theme, and the integrated sleep calculator with the sleep-cycle ring.
+Eine schlanke Neufassung des Tools in C# (.NET 8, WinForms). Funktional
+identisch zur Python-Version, aber als natives Windows-Programm.
 
-## Requirements
+## Features
+- Shutdown nach X Minuten **oder** zu einer festen Uhrzeit (HH:MM)
+- Reminder-Modus (kein Shutdown, nur Hinweisfenster)
+- Live-Countdown (HH:MM:SS) mit Fortschrittsbalken
+- Verhindert automatisches Standby (`SetThreadExecutionState` via P/Invoke)
+- Abbrechen jederzeit (`shutdown /a`)
+- Mini-Schlafrechner mit Schlafzyklen-Ring (90-min-Zyklen)
+- Dark-/Light-Umschaltung
+- Autostart-Schalter (Task Scheduler, startet beim Anmelden mit Adminrechten)
 
-- Windows 10/11
-- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+## Voraussetzungen zum Bauen
+- .NET 8 SDK (Windows): https://dotnet.microsoft.com/download
+- Gebaut und ausgefuehrt wird unter **Windows** (WinForms ist Windows-only).
 
-## Run from source
-
-```bash
-cd dotnet
-dotnet run
+## Bauen & starten (zum Testen)
+```powershell
+dotnet run -c Release
 ```
 
-The app requests administrator privileges on launch (see `app.manifest`) —
-this is required for the `shutdown` command and for registering the
-autostart task via `schtasks`.
+## Veroeffentlichen (kleine, saubere App)
 
-## Build a standalone .exe
+Die kleinste Variante ist **framework-abhaengig** als eine einzelne .exe.
+Sie braucht das ".NET Desktop Runtime 8" auf dem Zielrechner, ist dafuer aber
+nur wenige hundert KB gross:
 
-```bash
-cd dotnet
-dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true
+```powershell
+dotnet publish -c Release -r win-x64 --self-contained false ^
+  -p:PublishSingleFile=true
+```
+Ergebnis: `bin\Release\net8.0-windows\win-x64\publish\SleepPlanner.exe`
+
+Wenn der Zielrechner **kein** .NET installiert haben soll, baue
+self-contained (groesser, ca. 60-90 MB; mit Kompression etwas kleiner):
+
+```powershell
+dotnet publish -c Release -r win-x64 --self-contained true ^
+  -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true
 ```
 
-The executable is written to
-`bin/Release/net8.0-windows/win-x64/publish/SleepPlanner.exe`.
+## Hinweise
+- Die App fordert beim Start **Administratorrechte** an (siehe `app.manifest`).
+  Das ist noetig fuer den `shutdown`-Befehl und die Autostart-Registrierung.
+- Die SmartScreen-/Defender-Warnung verschwindet dadurch **nicht** — dafuer
+  braucht es ein Code-Signing-Zertifikat. Das ist sprachunabhaengig.
+- Autostart legt eine geplante Aufgabe namens `SleepPlannerAutostart` an.
+  Pruefen/loeschen kannst du sie in `taskschd.msc`.
 
-For a framework-dependent build (smaller, requires the .NET 8 runtime on the
-target machine), drop `--self-contained true` and `-r win-x64`:
-
-```bash
-dotnet publish -c Release
-```
-
-## Project layout
-
-| File               | Purpose                                                        |
-| ------------------ | ---------------------------------------------------------------|
-| `Program.cs`        | Entry point (`Main`), starts the WinForms message loop.        |
-| `MainForm.cs`       | UI: timer/reminder controls, countdown, sleep calculator, ring.|
-| `Services.cs`       | `Native` (sleep prevention), `ShutdownService` (`shutdown` CLI), `AutostartManager` (`schtasks`), `TimeMath` helpers. |
-| `app.manifest`      | Requests `requireAdministrator` execution level.                |
-| `app.ico`           | Application icon (embedded resource + exe icon).                |
-
-## Notes
-
-- `bin/` and `obj/` are build output and are git-ignored — no manual cleanup
-  needed.
-- Autostart registers a Task Scheduler task (`SleepPlannerAutostart`) that
-  runs at logon with the highest privileges, avoiding a UAC prompt on every
-  boot.
+## Projektdateien
+- `SleepPlanner.csproj` — Projektdefinition
+- `app.manifest` — fordert Adminrechte an
+- `Program.cs` — Einstiegspunkt
+- `Services.cs` — Win32-Interop, shutdown-Befehl, Autostart, Zeit-Mathematik
+- `MainForm.cs` — Oberflaeche und Ablauflogik
